@@ -5,6 +5,47 @@ import sys
 # Constants for file storage
 RESERVATIONS_FILE = "reservations.json"
 
+# Constants for User storage
+USERS_FILE = "users.json"
+
+# Call load and save json file
+def load_json(path):
+    if not os.path.exists(path):
+        return{}
+    try:
+        with open (path,"r") as f:
+            return json.load(f)
+    except:
+        return{}
+    
+
+def save_json(path, data):
+    """Saves user data to a JSON file (handles Customer objects)."""
+
+    clean_data = {}
+
+    # Loop through each user in the dictionary
+    for key, value in data.items():
+
+        # If the value is a Customer object, convert it to a dictionary
+        if isinstance(value, Customer):
+            clean_data[key] = {
+                "email": value.email,
+                "fname": value.fname,
+                "lname": value.lname,
+                "dob": value.dob,
+                "password": value.password
+            }
+
+        # Otherwise just store the value as-is
+        else:
+            clean_data[key] = value
+
+    # Open the file in write mode and save the cleaned data as JSON
+    with open(path, "w") as f:
+        json.dump(clean_data, f, indent=4)
+
+
 # --- 1. Custom Exceptions ---
 class MissingInformationError(Exception):
     """Exception raised when a required form field is left blank."""
@@ -83,8 +124,19 @@ def save_all_reservations(all_res_dict):
         print(f"Error saving reservation file: {e}")
 
 
-# Mock database for customer objects: {email: CustomerObject}
+# Database for customer objects: {email: CustomerObject}
+raw_users = load_json(USERS_FILE)
+
 user_db = {}
+
+for email, data in raw_users.items():
+    user_db[email] = Customer(
+        data["email"],
+        data["fname"],
+        data["lname"],
+        data["dob"],
+        data["password"]
+    )
 
 
 # --- 5. Application Functionality ---
@@ -121,6 +173,11 @@ def signup_page():
             user_data["date of birth"], 
             user_data["password"]
         )
+        
+        # Store user data to json file
+        user_db[new_customer.email] = new_customer
+        save_json(USERS_FILE, user_db)
+
         print(f"\nAccount created successfully for {new_customer.fname}!")
         return new_customer
 
